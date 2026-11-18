@@ -10,6 +10,7 @@
 import { PATHS, TIMEOUT_MS, apiBase } from "./sites.mjs"
 import { expiredError } from "./net.mjs"
 import { familyOf, variantsOf } from "./capabilities.mjs"
+import { modalitiesOf } from "./modalities.mjs"
 
 const MODELS_TTL_MS = 30 * 60 * 1000
 const STATE_MAX = 256
@@ -49,9 +50,7 @@ export function displayName(id) {
 export function modelEntry(profile, id, created) {
   const known = profile.fallback[id]
   const family = familyOf(id) ?? {}
-  const input = { text: true, image: false, audio: false, video: false, pdf: false }
-  for (const k of known?.modalities?.input ?? []) if (k in input) input[k] = true
-  const output = { text: true, image: false, audio: false, video: false, pdf: false }
+  const { input, output, attachment } = modalitiesOf(id, known)
   return {
     id,
     providerID: profile.id,
@@ -66,7 +65,7 @@ export function modelEntry(profile, id, created) {
     capabilities: {
       temperature: true,
       reasoning: known?.reasoning ?? family.reasoning ?? false,
-      attachment: input.image,
+      attachment,
       toolcall: known?.tool_call ?? true,
       input,
       output,

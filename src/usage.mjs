@@ -131,6 +131,14 @@ export function usageCard(available, earned, spent, ledger, calls) {
   const card = { plan: "魔粒", windows: [] }
   if (!Number.isFinite(available)) return card
   const round = (n) => Math.round(n * 100) / 100
+  // 账单只到 (天, 档位)，所以卡片能说的是「今天花了几颗、几笔、按档位单价
+  // 各几笔」，说不到「这一笔请求花了多少」。
+  const tierName = { ultra: "旗舰", standard: "标准" }
+  const tierText = (() => {
+    const rows = Object.entries(ledger?.tiers || {}).filter(([, v]) => v.count > 0 && v.amount > 0)
+    if (!rows.length) return ""
+    return `（${rows.map(([k, v]) => `${tierName[k] || k} ${round(v.amount / v.count)}×${v.count}`).join("、")}）`
+  })()
   card.balance = String(available)
   const dayGranted = ledger?.dailyGranted ?? 0
   const dayExpiresAt = ledger?.dailyExpiresAt ?? ""
@@ -151,7 +159,9 @@ export function usageCard(available, earned, spent, ledger, calls) {
       amount: round(daySpent),
       limit: round(dayGranted),
       unit: "魔粒",
-      display: `${round(dayLeft)} / ${round(dayGranted)}${calls ? ` · ${calls} 次调用` : ""}`,
+      display: `${round(dayLeft)} / ${round(dayGranted)} · 已花 ${round(Math.max(0, spent))}${
+        calls ? ` · ${calls} 次` : ""
+      }${tierText}`,
       span: 86400,
       resetsAt: nextBeijingReset(),
       ...(dayExpiresAt && dayLeft > 0 ? { runsOutAt: dayExpiresAt, runsOut: round(dayLeft) } : {}),

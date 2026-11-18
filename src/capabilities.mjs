@@ -24,7 +24,8 @@ const FAMILIES = [
     // 模型卡：支持 enable_thinking / preserve_thinking / reasoning_effort，
     // 默认 xhigh，可调 xhigh、medium、low
     // https://www.modelscope.ai/models/Qwen/Qwen3.8-Flash-Next
-    re: /^Qwen\/Qwen3\.8-Flash-Next$/,
+    // https://www.modelscope.cn/models/Qwen/Qwen3.8-27B
+    re: /^Qwen\/Qwen3\.8-/,
     reasoning: true,
     efforts: ["low", "medium", "xhigh"],
   },
@@ -32,11 +33,6 @@ const FAMILIES = [
     // 模型卡：默认思考，enable_thinking 关/开；没有分档的 reasoning_effort
     // https://www.modelscope.ai/models/Qwen/Qwen3.5-397B-A17B
     re: /^Qwen\/Qwen3\.5-/,
-    reasoning: true,
-  },
-  {
-    // 同上，3.8 的 27B 没有 27B 自己的档位文档，只标「会思考」
-    re: /^Qwen\/Qwen3\.8-27B$/,
     reasoning: true,
   },
   {

@@ -38,7 +38,8 @@ test("summarize 只把当日行算进卡片，并把签到发放和普通奖励�
     row({ total_amount: 200, expire_days: 1, expire_at: "2026-11-19 00:10:00" }),
     row({ rule_key: "aliyun_bindlogin", total_amount: 50, expire_days: 1, expire_at: "2026-11-19 00:20:00" }),
     row({ rule_key: "invite", total_amount: 30, expire_days: 90, expire_at: "2027-02-01 00:00:00" }),
-    { type: "SPEND_CONFIRM", gmt_created: DAY, total_amount: 4, count: 2 },
+    { type: "SPEND_CONFIRM", gmt_created: DAY, total_amount: 4, count: 2, model_tier: "ultra" },
+    { type: "SPEND_CONFIRM", gmt_created: DAY, total_amount: 1, count: 1, model_tier: "standard" },
     { type: "EXPIRE", gmt_created: DAY, total_amount: 10 },
     row({ gmt_created: "2026-11-17", total_amount: 999 }),
   ]
@@ -46,8 +47,10 @@ test("summarize 只把当日行算进卡片，并把签到发放和普通奖励�
   assert.equal(s.found, true)
   assert.equal(s.credit, 250)
   assert.equal(s.earned, 280)
-  assert.equal(s.spent, 4)
-  assert.equal(s.calls, 2)
+  assert.equal(s.spent, 5)
+  assert.equal(s.calls, 3)
+  assert.deepEqual(s.tiers.ultra, { amount: 4, count: 2 })
+  assert.deepEqual(s.tiers.standard, { amount: 1, count: 1 })
   assert.equal(s.dailyGranted, 250)
   assert.equal(s.longGranted, 30)
   assert.equal(s.dailyExpiresAt, "2026-11-18T16:10:00.000Z")
@@ -76,6 +79,23 @@ test("usageCard 给参与路由的合计窗口：limit 是余额 + 今日已花"
   assert.equal(dayWindow.aside, true)
   assert.equal(dayWindow.limit, 250)
   assert.equal(dayWindow.used, 20)
+})
+
+test("今日发放窗口把已花和档位单价说清楚", () => {
+  const ledger = summarize(
+    [
+      row({ total_amount: 250, expire_days: 1 }),
+      { type: "SPEND_CONFIRM", gmt_created: DAY, total_amount: 4, count: 2, model_tier: "ultra" },
+      { type: "SPEND_CONFIRM", gmt_created: DAY, total_amount: 1, count: 1, model_tier: "standard" },
+    ],
+    DAY,
+  )
+  const card = usageCard(245, ledger.earned, 5, ledger, 3)
+  const w = card.windows.find((x) => x.name === "今日发放")
+  assert.match(w.display, /已花 5/)
+  assert.match(w.display, /3 次/)
+  assert.match(w.display, /旗舰 2×2/)
+  assert.match(w.display, /标准 1×1/)
 })
 
 test("usageCard 没有当日发放时画成钱包窗口，不编造百分比", () => {
@@ -137,6 +157,34 @@ test("实时目录里的思考模型不会因为查不到兜底就丢掉 reasoni
   assert.deepEqual(modelEntry(CN, "Qwen/Qwen3.5-27B").variants, {})
   assert.equal(modelEntry(CN, "MedAIBase/AntAngelMed").capabilities.reasoning, false)
   assert.deepEqual(modelEntry(CN, "MedAIBase/AntAngelMed").variants, {})
+})
+
+test("图片能力按魔搭 pipeline 标签覆盖", () => {
+  // 视觉模型要收图，否则网关会把图先描述成文字
+  for (const id of [
+    "Qwen/Qwen3.8-27B",
+    "Qwen/Qwen3.8-Flash-Next",
+    "Qwen/Qwen3.5-27B",
+    "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "PaddlePaddle/ERNIE-4.5-VL-28B-A3B-PT",
+    "moonshotai/Kimi-K3.1-Pro",
+    "stepfun-ai/Step-3.7-Flash",
+  ]) {
+    const entry = modelEntry(CN, id)
+    assert.equal(entry.capabilities.input.image, true, id)
+    assert.equal(entry.capabilities.attachment, true, id)
+    assert.equal(entry.capabilities.output.text, true, id)
+  }
+  // 纯文本模型不硬写 image:false（那是「明确不收图」），只说自己是文本模型
+  const text = modelEntry(CN, "deepseek-ai/DeepSeek-V4-Pro")
+  assert.equal(text.capabilities.input.image, undefined)
+  assert.equal(text.capabilities.attachment, false)
+  // 图片编辑模型不是聊天模型：不产出文本，交给画图入口
+  const edit = modelEntry(CN, "Qwen/Qwen-Image-Edit")
+  assert.equal(edit.capabilities.output.text, false)
+  assert.equal(edit.capabilities.output.image, true)
+  // 目录里查不到的新 id 一样不硬写「不收图」
+  assert.equal(modelEntry(CN, "early-access/EA-29B-A4B").capabilities.input.image, undefined)
 })
 
 test("两个站点各自有一份兜底模型，且都认得自己的 provider id", () => {

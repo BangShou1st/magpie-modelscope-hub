@@ -1,6 +1,6 @@
 {
   "name": "magpie-modelscope-hub",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "魔搭 ModelScope 合一插件：国内站与国际站各自提供模型调用、魔粒用量卡和每日签到",
   "type": "module",
   "main": "./index.mjs",

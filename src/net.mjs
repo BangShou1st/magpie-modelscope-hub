@@ -112,6 +112,7 @@ export const EMPTY_LEDGER = {
   earned: 0,
   spent: 0,
   calls: 0,
+  tiers: {},
   dailyGranted: 0,
   dailyExpiresAt: "",
   dailyExpired: 0,
@@ -155,6 +156,7 @@ export function summarize(rows, day) {
   let earned = 0
   let spent = 0
   let calls = 0
+  const tiers = {}
   let found = false
   let reset
   const today = []
@@ -173,7 +175,14 @@ export function summarize(rows, day) {
       }
     } else if (type === "SPEND_CONFIRM" || type === "SPEND") {
       spent += amount
-      calls += Number(r?.count) || 0
+      const n = Number(r?.count) || 0
+      calls += n
+      // 魔搭的账单只按 (天, 档位) 聚合，把档位单独存下来，卡片才说得出
+      // “旗舰 2 魔粒/次、标准 1 魔粒/次”这种当日实价。
+      const tier = String(r?.model_tier || "unknown")
+      if (!tiers[tier]) tiers[tier] = { amount: 0, count: 0 }
+      tiers[tier].amount += amount
+      tiers[tier].count += n
     }
   }
   const buckets = bucketize(today, day)
@@ -184,6 +193,7 @@ export function summarize(rows, day) {
     earned: round(earned),
     spent: round(spent),
     calls,
+    tiers,
     ...buckets,
     ...(reset ? { reset } : {}),
   }
