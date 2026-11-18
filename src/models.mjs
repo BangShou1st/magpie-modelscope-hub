@@ -7,9 +7,9 @@
 // 钩子返回的必须是「完整的 OpenCode 模型形态」：magpie 原样接收钩子的条目，
 // 精简声明会被读成不支持推理、不支持工具、不能看图。
 
-import { apiBase } from "./sites.mjs"
-import { TIMEOUT_MS, PATHS } from "./sites.mjs"
+import { PATHS, TIMEOUT_MS, apiBase } from "./sites.mjs"
 import { expiredError } from "./net.mjs"
+import { familyOf, variantsOf } from "./capabilities.mjs"
 
 const MODELS_TTL_MS = 30 * 60 * 1000
 const STATE_MAX = 256
@@ -48,6 +48,7 @@ export function displayName(id) {
 
 export function modelEntry(profile, id, created) {
   const known = profile.fallback[id]
+  const family = familyOf(id) ?? {}
   const input = { text: true, image: false, audio: false, video: false, pdf: false }
   for (const k of known?.modalities?.input ?? []) if (k in input) input[k] = true
   const output = { text: true, image: false, audio: false, video: false, pdf: false }
@@ -64,7 +65,7 @@ export function modelEntry(profile, id, created) {
     headers: {},
     capabilities: {
       temperature: true,
-      reasoning: known?.reasoning ?? false,
+      reasoning: known?.reasoning ?? family.reasoning ?? false,
       attachment: input.image,
       toolcall: known?.tool_call ?? true,
       input,
@@ -72,7 +73,9 @@ export function modelEntry(profile, id, created) {
       interleaved: false,
     },
     release_date: releaseDate(created),
-    variants: {},
+    // 推理强度：只有文档写明档位的模型才有。空对象表示「这个模型没有分档」，
+    // 不是「还没做」。
+    variants: variantsOf(id),
   }
 }
 

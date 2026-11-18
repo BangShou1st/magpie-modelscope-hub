@@ -116,6 +116,29 @@ test("displayName 把厂商 id 读成人看的名字", () => {
   assert.equal(displayName("Qwen/Qwen3-Coder-30B-A3B-Instruct"), "Qwen3 Coder 30B A3B Instruct")
 })
 
+test("推理强度按文档覆盖：Nex-N2.5 三档、Qwen3.8-Flash-Next 三档", () => {
+  const nex = modelEntry(AI, "nex-agi/Nex-N2.5-Pro")
+  assert.equal(nex.capabilities.reasoning, true)
+  assert.deepEqual(Object.keys(nex.variants), ["none", "medium", "high"])
+  assert.deepEqual(nex.variants.high, { reasoningEffort: "high" })
+
+  const qwen = modelEntry(CN, "Qwen/Qwen3.8-Flash-Next")
+  assert.equal(qwen.capabilities.reasoning, true)
+  assert.deepEqual(Object.keys(qwen.variants), ["low", "medium", "xhigh"])
+})
+
+test("实时目录里的思考模型不会因为查不到兜底就丢掉 reasoning", () => {
+  // 这些 id 只存在于线上 /models，兜底里没有
+  assert.equal(modelEntry(CN, "Qwen/Qwen3.5-397B-A17B").capabilities.reasoning, true)
+  assert.equal(modelEntry(CN, "Qwen/Qwen3.8-27B").capabilities.reasoning, true)
+  assert.equal(modelEntry(CN, "deepseek-ai/DeepSeek-V4-Pro-0813").capabilities.reasoning, true)
+  assert.equal(modelEntry(CN, "ZhipuAI/GLM-4.7-Flash").capabilities.reasoning, true)
+  // 没有文档依据的不猜档位、也不乱标思考
+  assert.deepEqual(modelEntry(CN, "Qwen/Qwen3.5-27B").variants, {})
+  assert.equal(modelEntry(CN, "MedAIBase/AntAngelMed").capabilities.reasoning, false)
+  assert.deepEqual(modelEntry(CN, "MedAIBase/AntAngelMed").variants, {})
+})
+
 test("两个站点各自有一份兜底模型，且都认得自己的 provider id", () => {
   const cn = fallbackEntries(CN)
   const ai = fallbackEntries(AI)
