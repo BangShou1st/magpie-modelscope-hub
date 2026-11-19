@@ -17,6 +17,8 @@ import { modelsFor } from "./src/models.mjs"
 import { checkinFor } from "./src/checkin.mjs"
 import { dropLive, noteCall, resetLive, usageFor } from "./src/usage.mjs"
 import { resetModelsCache } from "./src/models.mjs"
+import { rateOf } from "./src/rates.mjs"
+import { requestModel, withCredit, withUsageOption } from "./src/credit.mjs"
 
 // 魔搭的方块标（models.dev 那份），内联成 data URI：不联网也能画出来。
 const ICON =
@@ -56,8 +58,15 @@ function makePlugin(profile) {
             async fetch(input, init) {
               const headers = new Headers(init?.headers)
               headers.set("authorization", `Bearer ${auth.key}`)
-              const res = await fetch(input, { ...init, headers })
-              if (res.status === 200) noteCall(profile, auth.key)
+              const prepared = withUsageOption(input, init)
+              const rate = rateOf(profile, requestModel(prepared))
+              const res = await fetch(input, { ...prepared, headers })
+              if (res.status === 200) {
+                noteCall(profile, auth.key)
+                // 按次计费、单价已知：把这一笔的魔粒写进 usage.credit，
+                // magpie 的用量页就能逐条显示（WorkBuddy 的 credit 同一个字段）。
+                if (rate !== undefined) return withCredit(res, rate)
+              }
               if (res.status === 401) return withSignIn(res, "expired")
               if (res.status === 403) return withSignIn(res, "kept")
               if (res.status === 402) {
@@ -100,4 +109,7 @@ export const _internal = {
   resetLive,
   resetModelsCache,
   withSignIn,
+  withCredit,
+  requestModel,
+  withUsageOption,
 }

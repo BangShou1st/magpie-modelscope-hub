@@ -198,6 +198,49 @@ test("魔粒倍率只写实测过的：旗舰 2、主流 1、轻量 0.5", () => 
   assert.equal(modelEntry(AI, "deepseek-ai/DeepSeek-V4.1-Flash-1017").rate, undefined)
 })
 
+test("withCredit 把这一笔的魔粒写进 JSON 的 usage", async () => {
+  const res = new Response(JSON.stringify({ model: "Qwen/Qwen3.8-27B", usage: { prompt_tokens: 3, completion_tokens: 1 } }), {
+    headers: { "content-type": "application/json" },
+  })
+  const out = await _internal.withCredit(res, 1)
+  const body = await out.json()
+  assert.equal(body.usage.credit, 1)
+  assert.equal(body.usage.prompt_tokens, 3)
+})
+
+test("withCredit 在 SSE 的 usage 块里补 credit，[DONE] 原样保留", async () => {
+  const enc = new TextEncoder()
+  const stream = new ReadableStream({
+    start(c) {
+      c.enqueue(enc.encode('data: {"choices":[],"usage":{"total_tokens":2}}\n\n'))
+      c.enqueue(enc.encode("data: [DONE]\n\n"))
+      c.close()
+    },
+  })
+  const out = await _internal.withCredit(new Response(stream, { headers: { "content-type": "text/event-stream" } }), 0.5)
+  const text = await out.text()
+  assert.match(text, /"usage":\{"total_tokens":2,"credit":0\.5\}/)
+  assert.match(text, /data: \[DONE\]/)
+})
+
+test("requestModel 从请求体里认出模型；读不出来不硬猜", () => {
+  assert.equal(_internal.requestModel({ body: JSON.stringify({ model: "ZhipuAI/GLM-5.2" }) }), "ZhipuAI/GLM-5.2")
+  assert.equal(_internal.requestModel({ body: "not json" }), undefined)
+  assert.equal(_internal.requestModel({}), undefined)
+})
+
+test("withUsageOption 只给流式 chat 请求补 include_usage", () => {
+  const body = JSON.stringify({ model: "Qwen/Qwen3.8-27B", stream: true, messages: [] })
+  const init = _internal.withUsageOption("https://api-inference.modelscope.cn/v1/chat/completions", { body, method: "POST" })
+  const json = JSON.parse(init.body)
+  assert.equal(json.stream_options.include_usage, true)
+  // 非流式不动
+  assert.equal(_internal.withUsageOption("https://x/v1/chat/completions", { body: JSON.stringify({ stream: false }) }).body, JSON.stringify({ stream: false }))
+  // 别动非 chat 端点
+  const other = { body }
+  assert.equal(_internal.withUsageOption("https://x/v1/embeddings", other), other)
+})
+
 test("两个站点各自有一份兜底模型，且都认得自己的 provider id", () => {
   const cn = fallbackEntries(CN)
   const ai = fallbackEntries(AI)
