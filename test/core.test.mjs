@@ -187,6 +187,17 @@ test("图片能力按魔搭 pipeline 标签覆盖", () => {
   assert.equal(modelEntry(CN, "early-access/EA-29B-A4B").capabilities.input.image, undefined)
 })
 
+test("魔粒倍率只写实测过的：旗舰 2、主流 1、轻量 0.5", () => {
+  assert.equal(modelEntry(CN, "Qwen/Qwen3.8-27B").rate, 1)
+  assert.equal(modelEntry(CN, "Qwen/Qwen3.5-397B-A17B").rate, 2)
+  assert.equal(modelEntry(CN, "nex-agi/Nex-N2.5-mini").rate, 0.5)
+  // 没测到的不给值，不拿别的模型猜
+  assert.equal(modelEntry(CN, "moonshotai/Kimi-K3.1-Pro").rate, undefined)
+  assert.equal(modelEntry(CN, "early-access/EA-29B-A4B").rate, undefined)
+  // 国际站没有实测数据，不显示倍率
+  assert.equal(modelEntry(AI, "deepseek-ai/DeepSeek-V4.1-Flash-1017").rate, undefined)
+})
+
 test("两个站点各自有一份兜底模型，且都认得自己的 provider id", () => {
   const cn = fallbackEntries(CN)
   const ai = fallbackEntries(AI)

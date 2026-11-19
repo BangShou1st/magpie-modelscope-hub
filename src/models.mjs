@@ -11,6 +11,7 @@ import { PATHS, TIMEOUT_MS, apiBase } from "./sites.mjs"
 import { expiredError } from "./net.mjs"
 import { familyOf, variantsOf } from "./capabilities.mjs"
 import { modalitiesOf } from "./modalities.mjs"
+import { rateOf } from "./rates.mjs"
 
 const MODELS_TTL_MS = 30 * 60 * 1000
 const STATE_MAX = 256
@@ -75,6 +76,9 @@ export function modelEntry(profile, id, created) {
     // 推理强度：只有文档写明档位的模型才有。空对象表示「这个模型没有分档」，
     // 不是「还没做」。
     variants: variantsOf(id),
+    // 魔粒倍率：调一次扣多少魔粒，只写实测过的。magpie 的模型选择器会把它
+    // 画成「2×」这样的标签（和 WorkBuddy 的 credits 倍率同一个字段）。
+    ...(rateOf(profile, id) !== undefined ? { rate: rateOf(profile, id) } : {}),
   }
 }
 

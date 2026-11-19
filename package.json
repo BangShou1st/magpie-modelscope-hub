@@ -1,6 +1,6 @@
 {
   "name": "magpie-modelscope-hub",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "魔搭 ModelScope 合一插件：国内站与国际站各自提供模型调用、魔粒用量卡和每日签到",
   "type": "module",
   "main": "./index.mjs",
@@ -25,6 +25,18 @@
     "checkin"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BangShou1st/magpie-modelscope-hub.git"
+  },
+  "homepage": "https://github.com/BangShou1st/magpie-modelscope-hub#readme",
+  "bugs": {
+    "url": "https://github.com/BangShou1st/magpie-modelscope-hub/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },
