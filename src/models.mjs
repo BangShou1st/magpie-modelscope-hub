@@ -12,6 +12,7 @@ import { expiredError } from "./net.mjs"
 import { familyOf, variantsOf } from "./capabilities.mjs"
 import { modalitiesOf } from "./modalities.mjs"
 import { rateOf } from "./rates.mjs"
+import { contextOf } from "./limits.mjs"
 
 const MODELS_TTL_MS = 30 * 60 * 1000
 const STATE_MAX = 256
@@ -58,7 +59,7 @@ export function modelEntry(profile, id, created) {
     name: known?.name ?? displayName(id),
     api: { id, url: apiBase(profile), npm: "@ai-sdk/openai-compatible" },
     status: isDeprecated(profile, id) ? "deprecated" : "active",
-    limit: known?.limit ?? { context: 128000, output: 8192 },
+    limit: known?.limit ?? { context: contextOf(id) ?? 128000, output: 8192 },
     // 计费是魔粒按次扣，不按 token，所以成本字段报 0（和上游两个插件一致）。
     cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
     options: {},

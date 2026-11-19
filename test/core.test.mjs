@@ -241,6 +241,14 @@ test("withUsageOption 只给流式 chat 请求补 include_usage", () => {
   assert.equal(_internal.withUsageOption("https://x/v1/embeddings", other), other)
 })
 
+test("模型窗口按 config.json 覆盖：DeepSeek 1M、Qwen3.5/3.8 256K", () => {
+  assert.equal(modelEntry(CN, "deepseek-ai/DeepSeek-V4.1-Flash-1017").limit.context, 1048576)
+  assert.equal(modelEntry(CN, "Qwen/Qwen3.8-27B").limit.context, 262144)
+  assert.equal(modelEntry(CN, "ZhipuAI/GLM-5.2").limit.context, 1048576)
+  // 查不到的仍按 128K，不乱报
+  assert.equal(modelEntry(CN, "early-access/EA-29B-A4B").limit.context, 128000)
+})
+
 test("两个站点各自有一份兜底模型，且都认得自己的 provider id", () => {
   const cn = fallbackEntries(CN)
   const ai = fallbackEntries(AI)

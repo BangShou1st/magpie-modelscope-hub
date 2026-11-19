@@ -122,6 +122,17 @@ supported" 的条目）标成 `deprecated`，magpie 会把它们从选择器和�
 2026-11-18 对国内站 38 个模型逐个核过 pipeline 标签。表里没有的新 id 只报文本、
 不声明图片能力，将来上的视觉模型仍能收到图，不会被本地网关先挡掉。
 
+### 上下文窗口
+
+`/v1/models` 不报窗口大小。之前所有线上模型吃默认 128K，对 1M 窗口的
+DeepSeek-V4.1 / GLM-5.2 是错的：dsh 按「窗口 − 72K」当压缩阈值，128K 只剩
+54272 令牌，一条 66K 的对话就会「压缩失败、切不过去」。现在 `src/limits.mjs`
+按模型仓库 `config.json` 的 `max_position_embeddings`（含 `text_config` /
+`llm_config` 里的）逐个补：DeepSeek 四兄弟 1M、GLM-5.2 1M、Qwen3.5/3.8 全系
+256K、GLM-4.7-Flash 202752、Intern-S1 64K。查不到的仍按 128K，不乱报。
+
+输出上限没有按模型的可靠来源，统一 8192。
+
 ### 推理强度
 
 `/v1/models` 只给 id，给不了「是不是思考模型」「支持哪几档推理强度」。不补这张
